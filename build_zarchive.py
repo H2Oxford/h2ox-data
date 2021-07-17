@@ -120,4 +120,4 @@ if __name__=="__main__":
     fs = sorted(glob.glob('data/2010_*_tp.nc'))
     print (fs)
     
-    loop(fs, gcs_root, n_workers=13)
+    loop(fs, gcs_root, n_workers=60)
