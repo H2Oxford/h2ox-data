@@ -1,7 +1,10 @@
-import os
+import os, time
 import cdsapi
 import glob
 import multiprocessing as mp
+
+import logging
+logging.basicConfig(level=logging.INFO)
 
 
 VARIABLES = {
@@ -76,33 +79,63 @@ def download_worker(f_queue, data_dir):
 def download_scheduler(n_files, n_workers, data_dir, hopper_dir):
     """ This download scheduler makes sure that there are always data ready to uploaded to zarr"""
     
+    logger = logging.getLogger('DOWNLOAD-SCHEDULER')
     
     download_pool = mp.Pool(n_workers)
+    
+    download_processes = []
     
     while True:
         
         fs = glob.glob(os.path.join(data_dir,'*.nc'))
         
+        logger.info(f'found {len(fs)} nc files on deck')
+        
         # if there aren't that many data files, then fetch a new one and remove the old one from the queue
         if len(fs)<n_files:
             
+            logger.info('Less than files threshold. Add some more?')
+            
             # get the files in the queue
-            queue = glob.glob(os.path.join(hopper_dir,'*.ncg'))
+            queue = sorted(glob.glob(os.path.join(hopper_dir,'*.ncq')))
             
-            # get the first file in the queue and send it to async download
-            download_pool.apply_async(download_worker, queue[0])
+            # get the files that are pending
+            pending = glob.glob(os.path.join(data_dir,'*.ncp'))
             
-            # remove it from the queue...
-            os.remove(queue[0])
+            logger.info(f'Got {len(queue)} in queue; {len(pending)} in pending')
             
-            # and put it as pending the data
-            root = os.path.splitext(os.path.split(queue[0])[1])[0]
+            if len(queue)>0 and len(pending)<n_workers:
+                logger.info(f'Adding file to download queue: {queue[0]}')
             
-            touch(os.path.join(data_dir,root+'.ncp'))
+                # get the first file in the queue and send it to async download
+                download_pool.apply_async(download_worker, (queue[0], data_dir))
+            
+                # remove it from the queue...
+                os.remove(queue[0])
+            
+                # and put it as pending the data
+                root = os.path.splitext(os.path.split(queue[0])[1])[0]
+            
+                touch(os.path.join(data_dir,root+'.ncp'))
+                
+            else:
+                logger.info(f'No queue files or too many pending!')
             
         
         # check back every 30s
+        logger.info('Checking back in 30s')
         time.sleep(30)
         
         
     
+if __name__=="__main__":
+    
+    download_scheduler(
+        n_files=3,
+        n_workers=3,
+        data_dir = os.path.join(os.getcwd(),'data'),
+        hopper_dir = os.path.join(os.getcwd(),'hopper')
+    )
+        
+    #pool = mp.Pool(3)
+    #pool.apply_async(download_worker, (os.path.join(os.getcwd(),'data','2011_05_tp.ncp'), os.path.join(os.getcwd(),'data')))

@@ -1,31 +1,52 @@
+import os
+import time
+import glob
+from datetime import datetime as dt
+import numpy as np
+import logging
+logging.basicConfig(level=logging.INFO)
 
-def upload_scheduler(data_dir):
+import multiprocessing as mp
+import xarray as xr
+import dask.array
+
+
+from workers import write_worker_mp
+
+
+def upload_scheduler(data_dir, gcs_root, n_upload_workers):
     """ This download scheduler makes sure that there are always data ready to uploaded to zarr"""
+    
+    logger = logging.getLogger('UPLOAD-SCHEDULER')
     
     while True:
         
-        nc_files = glob.glob(os.path.join(data_dir,'*.nc'))
+        nc_files = sorted(glob.glob(os.path.join(data_dir,'*.nc')))
         
         
         if len(nc_files)>0:
             
-            # run the file
-            nc_to_zarr(gcs_root, nc_files[0])
+            logger.info(f'Running File: {nc_files[0]}')
             
+            # run the file
+            nc_to_zarr(gcs_root, nc_files[0],n_upload_workers, logger)
+            
+            logger.info(f'Removing file: {nc_files[0]}')
             os.remove(nc_files[0])
             
         else:
+            logger.info('No Files. Sleeping 30s...')
             # sleep 30s otherwise
             time.sleep(30)
             
         
         
 
-def nc_to_zarr(gcs_root, f, n_workers):
+def nc_to_zarr(gcs_root, f, n_workers, logger):
     
     year, month, var = os.path.splitext(os.path.split(f)[1])[0].split('_')
     
-    logger = logging.getLogger(f'PUSH-{year}-{month}-{var}')
+    logger.info(f'PUSH: {year} {month} {var}')
     
     # get the ds object
     ds = xr.open_dataset(f,chunks={'longitude':10, 'latitude':10, 'time':35064})
@@ -35,7 +56,7 @@ def nc_to_zarr(gcs_root, f, n_workers):
     
     # eliminate the slices which hit the boundary
     slices = [s for s in slices if s[2].stop!=1801]
-    logger.info(f'Pushing {len(slices)}')
+    logger.info(f'N_slices: {len(slices)}')
     
     # prep for multiprocessing
     chunk_worker = len(slices)//n_workers+1
@@ -60,3 +81,12 @@ def nc_to_zarr(gcs_root, f, n_workers):
     results = pool.starmap(write_worker_mp, args)
     
     return np.prod(results)
+
+
+if __name__=="__main__":
+    
+    upload_scheduler(
+        data_dir = os.path.join(os.getcwd(),'data'), 
+        gcs_root = 'oxeo-era5/lk-test-build', 
+        n_upload_workers = 60
+    )
