@@ -22,6 +22,50 @@ VARIABLES = {
     'potev':'potential_evaporation',
 }
 
+FORECAST_VARIABLES = {
+    't2m':'2m_temperature',
+    'tp':'total_precipitation',
+}
+
+def build_forecast_archive(
+    start_date: str,
+    end_date: str,
+    chunks: Tuple[int,int,int,int],
+    gcs_root: str,
+) -> int:
+    
+    dt_range = pd.date_range('2010-01-01', end='2024-12-31', freq='1d')
+    steps = pd.date_range('2010-01-01', periods=61,freq='6H') - pd.Timestamp('2010-01-01')
+    
+    # first, build the coordinates
+    coords = {
+        'longitude': np.arange(0,360,0.5),
+        'latitude': np.arange(90,-90,-0.5),
+        'time': dt_range,
+        'step': steps,
+    }
+    
+    # next, build the variables
+    # use a dask array hold the dummy dimensions
+    dummies = dask.array.zeros((720, 360, dt_range.shape[0], steps.shape[0]), chunks=chunks)  # lon, lat, day, steps
+    
+    # mock-up the dataset
+    ds = xr.Dataset(
+        {kk: (tuple(coords.keys()), dummies) for kk in FORECAST_VARIABLES.keys()},
+        coords = coords
+    )
+    
+    # set up the Google Cloud Storage store
+    store = gcsfs.GCSMap(root=gcs_root)
+    
+    # Now we write the metadata without computing any array values
+    ds.to_zarr(store, compute=False, consolidated=True)
+    
+    return 1
+    
+    
+    
+
 def build_zarr_archive(
     start_date: str,
     end_date: str,
@@ -55,6 +99,8 @@ def build_zarr_archive(
     ds.to_zarr(store, compute=False, consolidated=True)
     
     return 1
+
+
 
 def push_month(gcs_root, f, n_workers):
     
@@ -109,15 +155,11 @@ def scheduler():
     pass
 
 if __name__=="__main__":
-    gcs_root = 'oxeo-era5/lk-test-build'
-    #build_zarr_archive(
-    #    start_date = '1981-01-01 00:00:00',
-    #    end_date = '2024-12-31 23:00:00',
-    #    chunks = (10,10,35064),
-    #    gcs_root = gcs_root,
-    #)
+    gcs_root = 'oxeo-forecasts/ecmwf-tigge-15day'
     
-    fs = sorted(glob.glob('data/2010_*_tp.nc'))
-    print (fs)
-    
-    loop(fs, gcs_root, n_workers=60)
+    build_forecast_archive(
+        start_date = '2010-01-01 00:00:00',
+        end_date = '2024-12-31 23:00:00',
+        chunks = (10, 10, 1461, 61), # lon, lat, day, steps
+        gcs_root = gcs_root
+    )
