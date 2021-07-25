@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import pandas as pd
 import numpy as np
@@ -14,25 +15,28 @@ class w2w_dnn_loader(Dataset):
     """
     
     
-    def __init__(self, csv_data_path, targets_forecast, lag_windows, segment, normalise):
+    def __init__(self, csv_data_path, targets_forecast, lag_windows, segment, normalise, autoregressive, start_date=None, end_date=None):
         
         self.segment = segment
         self.lag_windows = lag_windows
         self.targets_forecast = targets_forecast
+        self.autoregressive=autoregressive
         
         ### load the data
         df = pd.read_csv(csv_data_path).set_index('Unnamed: 0')
         df.index = pd.to_datetime(df.index)
         
         if normalise:
+            self.Y_mean = df['PRESENT_STORAGE_TMC'].mean()
+            self.Y_std = df['PRESENT_STORAGE_TMC'].std()
             df['PRESENT_STORAGE_TMC'] = (df['PRESENT_STORAGE_TMC'] - df['PRESENT_STORAGE_TMC'].mean()) / df['PRESENT_STORAGE_TMC'].std()
         
         ### construct the features
         df['Y'] = df['PRESENT_STORAGE_TMC']
-        df['Y_1'] = df['PRESENT_STORAGE_TMC'].shift(1)
+        df['Y_1'] = df['PRESENT_STORAGE_TMC'].shift(-1)
         
         for ii in range(5,targets_forecast,5):
-            df[f'Y_{ii}'] = df['PRESENT_STORAGE_TMC'].shift(ii)
+            df[f'Y_{ii}'] = df['PRESENT_STORAGE_TMC'].shift(-1*ii)
             
         # maybe normalise
         if normalise:
@@ -58,7 +62,6 @@ class w2w_dnn_loader(Dataset):
         ### set up the records -> a dict with int_index:shuffled(dt_index)
         
         valid_idxs = (
-            (df['segment']==segment) &
             (~pd.isna(df['PRESENT_STORAGE_TMC'])) &
             (~pd.isna(df['tp'])) &
             (~pd.isna(df['t2m'])) &
@@ -66,6 +69,13 @@ class w2w_dnn_loader(Dataset):
             (~pd.isna(df[[f't2m_{ii}' for ii in range(15)]]).any(axis=1)) &
             (~pd.isna(df[[f'Y_{ii}' for ii in range(5, self.targets_forecast,5)]]).any(axis=1))
         )
+        
+        if segment is not None:
+            valid_idxs = valid_idxs & (df['segment']==segment)
+            
+        if start_date is not None:
+            valid_idxs = valid_idxs & (df.index >= start_date) & (df.index<end_date)
+            
         
         print ('valid records:',valid_idxs.sum())
         self.records = df.loc[valid_idxs].index.tolist()
@@ -85,15 +95,18 @@ class w2w_dnn_loader(Dataset):
         
         # X -> Y, X_, lagged(X_), sin_dayofyear, forecast
         X_columns = (
-            ['Y'] + 
             ['tp','t2m'] + 
             [f'lag_{variable}_{window}' for window in self.lag_windows for variable in ['tp','t2m']] + 
-            ['sin_dayofyear'] + 
+            ['sin_dayofyear'] +
             [f'tp_{ii}' for ii in [1]+[jj for jj in range(5,self.targets_forecast,5) if jj<15]] + 
             [f't2m_{ii}' for ii in [1]+[jj for jj in range(5,self.targets_forecast,5) if jj<15]]
         )
         
+        if self.autoregressive:
+            X_columns = ['Y'] + X_columns
+        
         X = self.df.loc[idx_dt,X_columns].values
+        #X = np.random.rand(1).reshape((1,))
         
         #if np.isnan(X.astype(np.float32)).sum()>0:
         #    print ('X_NANNN', idx_dt)
@@ -112,10 +125,11 @@ if __name__=="__main__":
     
     loader = w2w_dnn_loader(
         csv_data_path=os.path.join(root,'wave2web_data','Kabini_12x3mo_split.csv'), 
-        targets_forecast=60, # days 
-        lag_windows=[5,15,30,60,100], # days
-        segment='trn',
-        normalise=True
+        targets_forecast=90, # days 
+        lag_windows=[5], # days
+        segment=None,
+        normalise=True,
+        autoregressive=False,
     )
     
     
