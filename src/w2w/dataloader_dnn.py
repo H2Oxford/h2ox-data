@@ -98,8 +98,8 @@ class w2w_dnn_loader(Dataset):
             ['tp','t2m'] + 
             [f'lag_{variable}_{window}' for window in self.lag_windows for variable in ['tp','t2m']] + 
             ['sin_dayofyear'] +
-            [f'tp_{ii}' for ii in [1]+[jj for jj in range(5,self.targets_forecast,5) if jj<15]] + 
-            [f't2m_{ii}' for ii in [1]+[jj for jj in range(5,self.targets_forecast,5) if jj<15]]
+            [f'tp_{ii}' for ii in range(1,14)] + 
+            [f't2m_{ii}' for ii in range(1,14)]
         )
         
         if self.autoregressive:

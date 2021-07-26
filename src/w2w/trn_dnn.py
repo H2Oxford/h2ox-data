@@ -2,6 +2,7 @@ import logging, os
 logging.basicConfig(level=logging.INFO)
 import pandas as pd
 from datetime import timedelta, datetime
+from torchsummary import summary
 
 from tqdm import tqdm
 
@@ -10,7 +11,7 @@ from torch import nn
 import numpy as np
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-
+from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
 
 from src.w2w.dataloader_dnn import w2w_dnn_loader
@@ -23,9 +24,9 @@ def weighted_mse_loss(input, target, weight):
 class W2W_DNN(nn.Module):
     def __init__(self, input_dim, output_dim):
         super().__init__()
-        self.fc1 = nn.Linear(input_dim, 20)
-        self.fc2 = nn.Linear(20, 20)
-        self.fc3 = nn.Linear(20, output_dim)
+        self.fc1 = nn.Linear(input_dim, 40)
+        self.fc2 = nn.Linear(40, 40)
+        self.fc3 = nn.Linear(40, output_dim)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -60,10 +61,12 @@ def whole_visualise(model, whole_loader, device, savepath):
     )
     
     results_df = results_df.sort_index()    
+    results_df.to_csv(os.path.splitext(savepath)[0]+'.csv')
     
-    fig, axs = plt.subplots(len(range(5,whole_loader.dataset.targets_forecast,5)),1,figsize=(18,12))
+    #len(range(5,whole_loader.dataset.targets_forecast,5))
+    fig, axs = plt.subplots(4,1,figsize=(18,12))
         
-    for ii_a, forecast_offset in enumerate(range(5,whole_loader.dataset.targets_forecast,5)):
+    for ii_a, forecast_offset in enumerate([5,30,60,90]):
         
         
         axs[ii_a].plot(
@@ -89,6 +92,32 @@ def whole_visualise(model, whole_loader, device, savepath):
     fig.suptitle(savepath)
     
     plt.savefig(savepath)
+    
+def eval_r2(model, test_loader, device):
+    
+    # collate results
+    model.eval()
+    Y_results = []
+    Y_hat_results = []
+    with torch.no_grad():
+        val_loss = 0
+        for batch_idx, (X, Y) in enumerate(test_loader):
+
+            X, Y = X.to(device), Y.to(device)
+
+            Y_hat = model(X)
+            
+            Y_results.append(Y.detach().to('cpu').numpy())
+            Y_hat_results.append(Y_hat.detach().to('cpu').numpy())
+            
+    Y_results = np.concatenate(Y_results)*test_loader.dataset.Y_std + test_loader.dataset.Y_mean
+    Y_hat_results = np.concatenate(Y_hat_results)*test_loader.dataset.Y_std + test_loader.dataset.Y_mean
+    
+    print ('Y_results shape',Y_results.shape)
+    
+    for jj in range(Y_results.shape[1]):
+        print (f'day {jj} r^2 score:', r2_score(Y_results[:,jj], Y_hat_results[:,jj]))
+    
 
 def eval_visualise(model, val_loader, device, savepath):
     
@@ -168,7 +197,7 @@ def eval_visualise(model, val_loader, device, savepath):
     
     
 
-def train(model, trn_loader, val_loader, whole_loader, optimizer, PARAMS, device, savepath, verbose=True):
+def train(model, trn_loader, val_loader, whole_loader, test_loader, optimizer, PARAMS, device, savepath, verbose=True):
     
     n_iter = 0
     for epoch in range(1, PARAMS['EPOCHS'] + 1):
@@ -241,6 +270,8 @@ def train(model, trn_loader, val_loader, whole_loader, optimizer, PARAMS, device
     #eval_visualise(model, val_loader, device, savepath)
     
     whole_visualise(model, whole_loader, device, savepath)
+    
+    eval_r2(model, test_loader, device)
 
 
     
@@ -251,33 +282,44 @@ def main(PARAMS):
     device = torch.device(PARAMS['DEVICE'])
     
     trn_dataset = w2w_dnn_loader(
-        csv_data_path=os.path.join(root, 'wave2web_data',f'{PARAMS["SITE"]}_12x3mo_split.csv'), 
-        targets_forecast=90, # days 
+        csv_data_path=os.path.join(root, 'wave2web_data',f'{PARAMS["SITE"]}_18x2mo_split.csv'), 
+        targets_forecast=91, # days 
+        lag_windows=[5,15,30,60,100], # days
+        segment=None,
+        autoregressive=True,
+        normalise=True,
+        start_date = datetime(year=2014,month=1,day=1),
+        end_date = datetime(year=2018,month=12,day=31),
+    )
+    val_dataset = w2w_dnn_loader(
+        csv_data_path=os.path.join(root, 'wave2web_data',f'{PARAMS["SITE"]}_18x2mo_split.csv'), 
+        targets_forecast=91, # days 
         lag_windows=[5,15,30,60,100], # days
         segment=None,
         autoregressive=True,
         normalise=True,
         start_date = datetime(year=2011,month=1,day=1),
-        end_date = datetime(year=2016,month=12,day=31),
-    )
-    val_dataset = w2w_dnn_loader(
-        csv_data_path=os.path.join(root, 'wave2web_data',f'{PARAMS["SITE"]}_12x3mo_split.csv'), 
-        targets_forecast=90, # days 
-        lag_windows=[5,15,30,60,100], # days
-        segment=None,
-        autoregressive=True,
-        normalise=True,
-        start_date = datetime(year=2017,month=1,day=1),
-        end_date = datetime(year=2020,month=12,day=31),
+        end_date = datetime(year=2013,month=12,day=31),
     )
     
     whole_dataset = w2w_dnn_loader(
-        csv_data_path=os.path.join(root, 'wave2web_data',f'{PARAMS["SITE"]}_12x3mo_split.csv'), 
-        targets_forecast=90, # days 
+        csv_data_path=os.path.join(root, 'wave2web_data',f'{PARAMS["SITE"]}_18x2mo_split.csv'), 
+        targets_forecast=91, # days 
         lag_windows=[5,15,30,60,100], # days
         segment=None,
         autoregressive=True,
         normalise=True
+    )
+    
+    test_dataset = w2w_dnn_loader(
+        csv_data_path=os.path.join(root, 'wave2web_data',f'{PARAMS["SITE"]}_18x2mo_split.csv'), 
+        targets_forecast=91, # days 
+        lag_windows=[5,15,30,60,100], # days
+        segment=None,
+        autoregressive=True,
+        normalise=True,
+        start_date = datetime(year=2019,month=1,day=1),
+        end_date = datetime(year=2020,month=12,day=31),
     )
     
     trn_loader = DataLoader(
@@ -300,6 +342,13 @@ def main(PARAMS):
         num_workers=PARAMS['DATALOADER_WORKERS'], 
     )
     
+    test_loader = DataLoader(
+        test_dataset, 
+        batch_size=PARAMS['BATCH_SIZE'], 
+        shuffle=False,
+        num_workers=PARAMS['DATALOADER_WORKERS'], 
+    )
+    
     _X, _Y = trn_dataset.__getitem__(0)
     
     model = W2W_DNN(
@@ -311,18 +360,18 @@ def main(PARAMS):
     
     optimizer = torch.optim.Adam(params=model.parameters(), lr=PARAMS['LR'])
     
-    train(model, trn_loader, val_loader, whole_loader, optimizer, PARAMS, device=device, savepath=os.path.join(root,PARAMS['SITE']+'_DNN_break_timeseries.png'), verbose=True)
+    train(model, trn_loader, val_loader, whole_loader, test_loader, optimizer, PARAMS, device=device, savepath=os.path.join(root,PARAMS['SITE']+'_DNN_break_timeseries.png'), verbose=True)
     
     
 if __name__=="__main__":
     
-    for kk in ['Kabini']:#,'Harangi','Hemavathy','Krisharaja Sagar']:
+    for kk in ['Kabini','Harangi','Hemavathy','Krisharaja Sagar']:
     
         PARAMS = dict(
             SITE=kk,
             BATCH_SIZE=128,
             DATALOADER_WORKERS = 6,
-            LR=0.001,
+            LR=0.0005,
             DEVICE='cuda',
             EPOCHS=25,
         )
