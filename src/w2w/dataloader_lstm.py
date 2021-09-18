@@ -166,12 +166,12 @@ class w2w_lstm_loader(Dataset):
                 "future_1": torch.from_numpy(Y_future_1.astype(np.float32)),
                 "future_2": torch.from_numpy(Y_future_2.astype(np.float32)),
             }
-
-            return X, Y
-
             assert False
+            return X, Y
         else:
+            assert False
             return X
+            
 
 
 if __name__ == "__main__":
