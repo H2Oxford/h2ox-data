@@ -1,6 +1,7 @@
+from typing import List
 import os
 from datetime import datetime
-
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import torch
@@ -18,15 +19,15 @@ class w2w_lstm_loader(Dataset):
 
     def __init__(
         self,
-        csv_data_path,
-        horizon_days,
-        lead_days,
-        segment,
-        site,
-        shuffle_records=True,
-        targets=True,
-        start_date=None,
-        end_date=None,
+        csv_data_path: Path,
+        horizon_days: int,    # 
+        lead_days: int,       # 
+        segment: List[str],
+        site: str,
+        shuffle_records: bool = True,
+        targets: bool = True,
+        start_date: bool = None,
+        end_date: bool = None,
     ):
 
         self.segment = segment
@@ -167,6 +168,8 @@ class w2w_lstm_loader(Dataset):
             }
 
             return X, Y
+
+            assert False
         else:
             return X
 
@@ -175,6 +178,7 @@ if __name__ == "__main__":
     ### do some tests
 
     root = os.getcwd()
+    data_dir = Path("/home/leest/h2ox-wave2web")
 
     """dataset = w2w_lstm_loader(
         csv_data_path=os.path.join(root,'wave2web_data','kabini_zscore.csv'), 
@@ -209,7 +213,8 @@ if __name__ == "__main__":
     #    X, Y = loader.__getitem__(ii)"""
 
     whole_dataset = w2w_lstm_loader(
-        csv_data_path=os.path.join(root, "wave2web_data", f"kabini_3zscore.csv"),
+        csv_data_path=data_dir / "wave2web_data/kabini_zscore.csv",
+        site="kabini",
         horizon_days=90,
         lead_days=60,
         segment=["trn", "val", "test", "deploy"],
