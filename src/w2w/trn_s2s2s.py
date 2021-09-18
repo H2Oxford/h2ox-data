@@ -133,7 +133,7 @@ def train(
             Y_hat = model(X)
 
             Y_together = torch.cat([Y["future_1"], Y["future_2"]], dim=1)
-
+            assert False
             loss = F.mse_loss(Y_hat, Y_together)
             # weights = torch.from_numpy(np.stack([np.arange(Y.shape[1],0,-1)/np.arange(Y.shape[1],0,-1).sum()]*X.shape[0])).to(device)
             # loss = weighted_mse_loss(Y_hat, Y, weights)
@@ -467,8 +467,8 @@ def whole_visualise_and_output(model, whole_loader, device):
 
 if __name__ == "__main__":
 
-    for kk in ['kabini','harangi','hemavathy','krishnaraja_sagar','bhadra','lower_bhawani']:
-    # for kk in ["kabini"]:
+    # for kk in ['kabini','harangi','hemavathy','krishnaraja_sagar','bhadra','lower_bhawani']:
+    for kk in ["kabini"]:
         PARAMS = dict(
             SITE=kk,
             BATCH_SIZE=256,

@@ -166,10 +166,10 @@ class w2w_lstm_loader(Dataset):
                 "future_1": torch.from_numpy(Y_future_1.astype(np.float32)),
                 "future_2": torch.from_numpy(Y_future_2.astype(np.float32)),
             }
-            assert False
+
             return X, Y
         else:
-            assert False
+
             return X
             
 
@@ -222,6 +222,6 @@ if __name__ == "__main__":
         shuffle_records=False,
     )
 
-    loader = DataLoader(whole_dataset, batch_size=40, num_workers=6, shuffle=False)
+    loader = DataLoader(whole_dataset, batch_size=40, num_workers=0, shuffle=False)
     for X in loader:
         print([(kk, xx.shape) for kk, xx in X.items()])
