@@ -1,5 +1,0 @@
-geopandas>=0.9.0
-rasterio>=1.2.6
-xarray>=0.18.2
-scikit-image>=0.18.2
-zarr>=2.8.3
