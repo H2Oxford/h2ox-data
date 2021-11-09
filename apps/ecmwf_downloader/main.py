@@ -9,12 +9,10 @@ import sys
 import time
 import traceback
 
-import cattr
-import gcsfs
-import pystac
 from flask import Flask
 from flask import request
-from google.cloud import storage
+from h2ox.data.downloaders import era5_downloader, tigge_downloader
+from h2ox.provider import upload_blob
 from loguru import logger
 
 
@@ -40,6 +38,27 @@ def format_stacktrace():
 
 @app.route("/", methods=["POST"])
 def download_ecmwf():
+    
+    """Receive a request and queue downloading ecmwf data
+    
+    Request params:
+    ---------------
+    
+        archive: Union[]
+        year: int
+        month: 
+        days:
+        variable:
+        
+    
+    # download data
+    # upload to bucket
+    # delete local
+    
+    """
+    
+    
+    
 
     try:
         tic = time.time()
@@ -60,89 +79,36 @@ def download_ecmwf():
         if not isinstance(request_json, dict):
             json_data = base64.b64decode(request_json).decode("utf-8")
             request_json = json.loads(json_data)
-        # common data
-        storage_gs_path = request_json["storage_gs_path"]
-        bands = request_json["bands"]
-        resolution = request_json["resolution"]
-        job_id = request_json["job_id"]
+        
+        # parse request
+        archive = request_json["archive"]
+        year = int(request_json["year"])
+        month = int(request_json["month"])
+        days = request_json["days"]
+        variable = request_json["variable"]
 
-        fs = gcsfs.GCSFileSystem()
-
-        # ExtractionTask data
-        extraction_task = request_json["extraction_task"]
-        tiles = [cattr.structure(t, Tile) for t in extraction_task["tiles"]]
-        item_collection = pystac.ItemCollection.from_dict(
-            extraction_task["item_collection"],
-        )
-        band = extraction_task["band"]
-        task_id = extraction_task["task_id"]
-        constellation = extraction_task["constellation"]
-        sensing_time = datetime.datetime.fromisoformat(extraction_task["sensing_time"])
-        task = ExtractionTask(
-            task_id,
-            tiles,
-            item_collection,
-            band,
-            constellation,
-            sensing_time,
-        )
-
-        logger.info(f"Ready to extract {len(task.tiles)} tiles.")
-
-        # do monitor if possible
-        if "MONITOR_TABLE" in os.environ:
-            monitor = GCPMonitor(
-                table_name=os.environ["MONITOR_TABLE"],
-                storage_path=storage_gs_path,
-                job_id=job_id,
-                task_id=task_id,
-                constellation=constellation,
-            )
-            monitor.post_status(
-                msg_type="STARTED",
-                msg_payload=f"Extracting {len(task.tiles)}",
-            )
+        # download data
+        logger.info(f'Requesting download for {archive} {year} {month} {variable}')
+        
+        if archive=='era5land':
+            savepath = era5_downloader(year, month, variable, days)
+        elif archive=='tigge':
+            savepath = tigge_downloader(year, month, days)
         else:
-            logger.warning(
-                "Environment variable MONITOR_TABLE not set. Unable to push task status to Monitor",
-            )
+            raise NotImplementedError
+            
+        # upload data
+        blob_dest = os.path.join(os.environ['CLOUD_STAGING'],os.path.split(savepath)[-1])
+        
+        logger.info(f'Uploading to staging {blob_dest}')
+        upload_blob(savepath,blog_dest)
+        
+        # remove local data
+        os.remove(savepath)
 
-        patches = task_mosaic_patches(
-            cloud_fs=fs,
-            download_f=download_blob,
-            task=task,
-            method="first",
-            resolution=resolution,
-        )
+        logger.info(f'Removed {savepath}')
 
-        archive_resolution = int(
-            min([b["gsd"] for kk, b in BAND_INFO[constellation].items()]),
-        )
-
-        logger.info(f"Ready to store {len(patches)} patches at {storage_gs_path}.")
-        store_patches(
-            fs.get_mapper,
-            storage_gs_path,
-            patches,
-            task,
-            bands,
-            resolution,
-            archive_resolution,
-        )
-
-        toc = time.time()
-
-        if "MONITOR_TABLE" in os.environ:
-            monitor.post_status(
-                msg_type="FINISHED",
-                msg_payload=f"Elapsed time: {toc-tic}",
-            )
-
-        logger.info(
-            f"{len(patches)} patches were succesfully stored in {storage_gs_path}.",
-        )
-
-        return f"Extracted {len(patches)} patches.", 200
+        return f"Staged {blobdest}", 200
 
     except Exception as e:
 
