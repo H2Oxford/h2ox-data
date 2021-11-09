@@ -57,14 +57,14 @@ def build_era5_archive(
     
     # first, build the coordinates
     coords = {
-        'longitude': np.arange(0,360,0.1),
         'latitude': np.arange(90,-90,-0.1),
+        'longitude': np.arange(0,360,0.1),
         'time': dt_range
     }
     
     # next, build the variables
     # use a dask array hold the dummy dimensions
-    dummies = dask.array.zeros((3600,1800,dt_range.shape[0]), chunks=chunks, dtype=np.float32)
+    dummies = dask.array.zeros((1800,3600,dt_range.shape[0]), chunks=chunks, dtype=np.float32)
     
     # mock-up the dataset
     ds = xr.Dataset(
@@ -81,19 +81,21 @@ if __name__=="__main__":
     
     logger.info('building forecast archive')
     
+    """
     build_forecast_archive(
         start_date = '2010-01-01 00:00:00',
         end_date = '2024-12-31 23:00:00',
         chunks = (10, 10, 1461, 61), # lon, lat, day, steps
         storage_root = os.environ['FORECAST_ARCHIVE_ROOT']
     )
+    """
     
     logger.info('building era5 archive')
     
     build_era5_archive(
         start_date = '1981-01-01 00:00:00',
         end_date = '2024-12-31 23:00:00',
-        chunks = (10, 10, 1461*24), # lon, lat, day * 24 hrs
+        chunks = (10, 10, 1461*24), # lat, lon, day * 24 hrs
         storage_root = os.environ['ERA5_ARCHIVE_ROOT']
     )
     
