@@ -53,7 +53,7 @@ def era5_downloader(
     year = str(year)
     month = int(month)
     
-    c = cdsapi.Client()
+    c = cdsapi.Client(quiet=True)
     
     c.retrieve(
     'reanalysis-era5-land',
