@@ -23,7 +23,7 @@ def era5_downloader(
     
     assert variable in VARIABLES.keys(), f'<variable> must be one of {VARIABLES.keys()}'
     
-    savepath = os.path.join(os.getcwd(),'data','_'.join(['era5land',str(year),f'{month:02d}',variable])+'.nc')
+    savepath = os.path.join(os.getcwd(),'_'.join(['era5land',str(year),f'{month:02d}',variable])+'.nc')
     
     slackmessenger = SlackMessenger(
         token=os.environ.get('SLACKBOT_TOKEN'),

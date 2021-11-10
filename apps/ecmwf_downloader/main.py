@@ -110,4 +110,4 @@ def download_ecmwf():
 
     logger.info(f'Removed {savepath}')
 
-    return f"Staged {blobdest}", 200
+    return f"Staged {blob_dest}", 200
