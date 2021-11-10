@@ -56,68 +56,58 @@ def download_ecmwf():
     # delete local
     
     """
+
+    payload = request.get_json()
     
-    
-    
+    if not payload:
+        msg = "no message received"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
 
-    try:
-        tic = time.time()
 
-        envelope = request.get_json()
-        if not envelope:
-            msg = "no message received"
-            print(f"error: {msg}")
-            return f"Bad Request: {msg}", 400
-        
-        
-        logger.info('envelope: '+json.dumps(envelope))
+    logger.info('payload: '+json.dumps(payload))
 
-        if not isinstance(envelope, dict) or "message" not in envelope:
-            msg = "invalid Pub/Sub message format"
-            print(f"error: {msg}")
-            return f"Bad Request: {msg}", 400
+    if not isinstance(payload, dict):
+        msg = "invalid task format"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
 
-        request_json = envelope["message"]["data"]
+    for kk in ['archive','year','month','day','variable']:
+        if not kk in payload.keys():
+            msg = f"{kk} not in payload keys: {payload.keys()}"
+            print (f"error: {msg}")
+            return f"Bad Request: {msg}". 400
 
-        if not isinstance(request_json, dict):
-            json_data = base64.b64decode(request_json).decode("utf-8")
-            request_json = json.loads(json_data)
-        
-        # parse request
-        archive = request_json["archive"]
-        year = int(request_json["year"])
-        month = int(request_json["month"])
-        days = request_json["days"]
-        variable = request_json["variable"]
+    if not isinstance(payload, dict):
+        json_data = base64.b64decode(payload).decode("utf-8")
+        payload = json.loads(json_data)
 
-        # download data
-        logger.info(f'Requesting download for {archive} {year} {month} {variable}')
-        
-        if archive=='era5land':
-            savepath = era5_downloader(year, month, variable, days)
-        elif archive=='tigge':
-            savepath = tigge_downloader(year, month, days)
-        else:
-            raise NotImplementedError
-            
-        # upload data
-        blob_dest = os.path.join(os.environ['CLOUD_STAGING'],os.path.split(savepath)[-1])
-        
-        logger.info(f'Uploading to staging {blob_dest}')
-        upload_blob(savepath,blog_dest)
-        
-        # remove local data
-        os.remove(savepath)
+    # parse request
+    archive = payload["archive"]
+    year = int(payload["year"])
+    month = int(payload["month"])
+    days = payload["days"]
+    variable = payload["variable"]
 
-        logger.info(f'Removed {savepath}')
+    # download data
+    logger.info(f'Requesting download for {archive} {year} {month} {variable}')
 
-        return f"Staged {blobdest}", 200
+    if archive=='era5land':
+        savepath = era5_downloader(year, month, variable, days)
+    elif archive=='tigge':
+        savepath = tigge_downloader(year, month, days)
+    else:
+        raise NotImplementedError
 
-    except Exception as e:
+    # upload data
+    blob_dest = os.path.join(os.environ['CLOUD_STAGING'],os.path.split(savepath)[-1])
 
-        trace = format_stacktrace()
+    logger.info(f'Uploading to staging {blob_dest}')
+    upload_blob(savepath,blog_dest)
 
-        if "MONITOR_TABLE" in os.environ:
-            monitor.post_status(msg_type="FAILED", msg_payload=trace)
+    # remove local data
+    os.remove(savepath)
 
-        raise e
+    logger.info(f'Removed {savepath}')
+
+    return f"Staged {blobdest}", 200
