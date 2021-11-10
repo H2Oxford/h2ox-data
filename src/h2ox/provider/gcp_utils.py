@@ -1,3 +1,5 @@
+import io
+
 from google.cloud import storage
 
 def download_blob(url: str) -> io.BytesIO:

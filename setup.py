@@ -72,6 +72,10 @@ setup(
     ],
     python_requires=">=3.8",
     install_requires=[
+        "Flask~=2.0.1",
+        "gunicorn~=20.1.0",
+        "cdsapi~=0.5.1",
+        "ecmwf-api-client~=1.6.1",
         "loguru~=0.5.3",
         "joblib~=1.1.0",
         "numpy~=1.21.4",

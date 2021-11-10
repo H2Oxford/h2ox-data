@@ -10,7 +10,7 @@ ENV MAIN apps/ecmwf_downloader
 
 ENV APP_HOME /app
 
-COPY $MAIN ./
+COPY $MAIN $APP_HOME
 
 WORKDIR $APP_HOME
 

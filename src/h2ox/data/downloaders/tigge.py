@@ -1,4 +1,4 @@
-
+from typing import Optional, List
 
 FORECAST_VARIABLES = {
     't2m':'2m_temperature',
