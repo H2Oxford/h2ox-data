@@ -72,7 +72,7 @@ def download_ecmwf():
         print(f"error: {msg}")
         return f"Bad Request: {msg}", 400
 
-    for kk in ['archive','year','month','day','variable']:
+    for kk in ['archive','year','month','days','variable']:
         if not kk in payload.keys():
             msg = f"{kk} not in payload keys: {payload.keys()}"
             print (f"error: {msg}")
