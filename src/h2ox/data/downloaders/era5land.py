@@ -1,6 +1,10 @@
 from typing import List, Optional
-from h2ox.data.slackbot import SlackMessenger
 import os
+
+import cdsapi
+
+from h2ox.data.slackbot import SlackMessenger
+
 
 VARIABLES = {
     't2m':'2m_temperature',
