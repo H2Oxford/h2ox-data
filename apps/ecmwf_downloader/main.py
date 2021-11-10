@@ -68,6 +68,9 @@ def download_ecmwf():
             msg = "no message received"
             print(f"error: {msg}")
             return f"Bad Request: {msg}", 400
+        
+        
+        logger.info('envelope: '+json.dumps(envelope))
 
         if not isinstance(envelope, dict) or "message" not in envelope:
             msg = "invalid Pub/Sub message format"
