@@ -5,11 +5,8 @@ FROM osgeo/gdal:ubuntu-small-latest
 ENV PYTHONUNBUFFERED True
 
 # Set provider dir path
-ENV PROVIDER GCP
 
 ENV APP_HOME /app
-
-ENV MAIN apps/ecmwf_downloader
 
 COPY $MAIN ./
 

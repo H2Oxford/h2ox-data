@@ -1,4 +1,5 @@
 from typing import List, Optional
+from h2ox.data.slackbot import SlackMessenger
 import os
 
 VARIABLES = {
@@ -19,6 +20,14 @@ def era5_downloader(
     assert variable in VARIABLES.keys(), f'<variable> must be one of {VARIABLES.keys()}'
     
     savepath = os.path.join(os.getcwd(),'data','_'.join(['era5land',str(year),f'{month:02d}',variable])+'.nc')
+    
+    slackmessenger = SlackMessenger(
+        token=os.environ.get('SLACKBOT_TOKEN'),
+        target = os.environ.get('SLACKBOT_TARGET'),
+        name='era5-downloader',
+    )
+    
+    slackmessenger.message(f'Fetching {savepath}')
     
     if days is not None:
         days = [f'{d_int:02d}' for d_int in days]
@@ -62,5 +71,7 @@ def era5_downloader(
         ],
     },
     savepath)
+    
+    slackmessenger.message(f'Retrieved {savepath}')
     
     return savepath
