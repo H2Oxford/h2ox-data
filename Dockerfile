@@ -4,7 +4,8 @@ FROM osgeo/gdal:ubuntu-small-latest
 # Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED True
 
-# Set provider dir path
+# Set default to clear CI
+ENV PROVIDER GCP
 
 ENV APP_HOME /app
 
