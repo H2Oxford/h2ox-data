@@ -103,7 +103,7 @@ def download_ecmwf():
     blob_dest = os.path.join(os.environ['CLOUD_STAGING'],os.path.split(savepath)[-1])
 
     logger.info(f'Uploading to staging {blob_dest}')
-    upload_blob(savepath,blog_dest)
+    upload_blob(savepath,blob_dest)
 
     # remove local data
     os.remove(savepath)
