@@ -76,7 +76,7 @@ def download_ecmwf():
         if not kk in payload.keys():
             msg = f"{kk} not in payload keys: {payload.keys()}"
             print (f"error: {msg}")
-            return f"Bad Request: {msg}". 400
+            return f"Bad Request: {msg}", 400
 
     if not isinstance(payload, dict):
         json_data = base64.b64decode(payload).decode("utf-8")
