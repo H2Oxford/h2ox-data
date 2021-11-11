@@ -14,7 +14,7 @@ VARIABLES = {
     'potev':'potential_evaporation',
 }
 
-def era5_downloader(
+def era5_enqueuer(
     year:int, 
     month:int, 
     variable:str, 
@@ -22,16 +22,6 @@ def era5_downloader(
 ):
     
     assert variable in VARIABLES.keys(), f'<variable> must be one of {VARIABLES.keys()}'
-    
-    savepath = os.path.join(os.getcwd(),'_'.join(['era5land',str(year),f'{month:02d}',variable])+'.nc')
-    
-    slackmessenger = SlackMessenger(
-        token=os.environ.get('SLACKBOT_TOKEN'),
-        target = os.environ.get('SLACKBOT_TARGET'),
-        name='era5-downloader',
-    )
-    
-    slackmessenger.message(f'Fetching {savepath}')
     
     if days is not None:
         days = [f'{d_int:02d}' for d_int in days]
@@ -53,29 +43,61 @@ def era5_downloader(
     year = str(year)
     month = int(month)
     
-    c = cdsapi.Client(quiet=True)
+    client = cdsapi.Client(wait_until_complete=False)
     
-    c.retrieve(
-    'reanalysis-era5-land',
-    {
-        'format': 'netcdf',
-        'variable': VARIABLES[variable],
-        'year': str(year),
-        'month': f'{month:02d}',
-        'day': days,
-        'time': [
-            '00:00', '01:00', '02:00',
-            '03:00', '04:00', '05:00',
-            '06:00', '07:00', '08:00',
-            '09:00', '10:00', '11:00',
-            '12:00', '13:00', '14:00',
-            '15:00', '16:00', '17:00',
-            '18:00', '19:00', '20:00',
-            '21:00', '22:00', '23:00',
-        ],
-    },
-    savepath)
     
-    slackmessenger.message(f'Retrieved {savepath}')
+    result_object = c.retrieve(
+        'reanalysis-era5-land',
+        {
+            'format': 'netcdf',
+            'variable': VARIABLES[variable],
+            'year': str(year),
+            'month': f'{month:02d}',
+            'day': days,
+            'time': [
+                '00:00', '01:00', '02:00',
+                '03:00', '04:00', '05:00',
+                '06:00', '07:00', '08:00',
+                '09:00', '10:00', '11:00',
+                '12:00', '13:00', '14:00',
+                '15:00', '16:00', '17:00',
+                '18:00', '19:00', '20:00',
+                '21:00', '22:00', '23:00',
+            ],
+        }
+    )
+    
+    return result_object.reply
+    
+def era5_checker(reply: dict):
+    """update our reply dict"""
+    
+    client = cdsapi.Client(wait_until_complete=False)
+    
+    task_url = "%s/tasks/%s" % (client.url, reply['request_id'])
+    
+    refresh = client.robust(client.session.get)(task_url, verify=True)
+    
+    reply = json.loads(refresh.text)
+    
+    return reply
+    
+
+def era5_downloader(
+    reply: dict,
+    savepath: str
+):
+    
+    client = cdsapi.Client(wait_until_complete=False, quiet=True)
+    
+    task_url = "%s/tasks/%s" % (client.url, reply['request_id'])
+    
+    refresh = client.robust(client.session.get)(task_url, verify=True)
+    
+    reply = json.loads(refresh.text)
+    
+    result_ob = cdsapi.api.Result(c, reply) # building this guy break the current request
+    
+    result_ob.download(savepath)
     
     return savepath

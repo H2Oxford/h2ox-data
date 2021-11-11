@@ -11,10 +11,11 @@ import traceback
 
 from flask import Flask
 from flask import request
-from h2ox.data.downloaders import era5_downloader, tigge_downloader
-from h2ox.provider import upload_blob
+from h2ox.data.downloaders import era5_downloader
+from h2ox.provider import upload_blob, download_cloud_json
 from loguru import logger
 
+"""downloader - gets json from scheduler and downloads"""
 
 app = Flask(__name__)
 
@@ -56,8 +57,23 @@ def download_ecmwf():
     # delete local
     
     """
+    
+    envelope = request.get_json()
+    if not envelope:
+        msg = "no Pub/Sub message received"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
 
-    payload = request.get_json()
+    if not isinstance(envelope, dict) or "message" not in envelope:
+        msg = "invalid Pub/Sub message format"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
+
+    request_json = envelope["message"]["data"]
+
+    if not isinstance(request_json, dict):
+        json_data = base64.b64decode(request_json).decode("utf-8")
+        request_json = json.loads(json_data)
     
     if not payload:
         msg = "no message received"
@@ -65,49 +81,42 @@ def download_ecmwf():
         return f"Bad Request: {msg}", 400
 
 
-    logger.info('payload: '+json.dumps(payload))
-
-    if not isinstance(payload, dict):
-        msg = "invalid task format"
-        print(f"error: {msg}")
-        return f"Bad Request: {msg}", 400
-
-    for kk in ['archive','year','month','days','variable']:
-        if not kk in payload.keys():
-            msg = f"{kk} not in payload keys: {payload.keys()}"
-            print (f"error: {msg}")
-            return f"Bad Request: {msg}", 400
-
-    if not isinstance(payload, dict):
-        json_data = base64.b64decode(payload).decode("utf-8")
-        payload = json.loads(json_data)
-
+    logger.info('request_json: '+json.dumps(request_json))
+    
+    slackmessenger = SlackMessenger(
+        token=os.environ.get('SLACKBOT_TOKEN'),
+        target = os.environ.get('SLACKBOT_TARGET'),
+        name='era5-downloader',
+    )
+    
     # parse request
-    archive = payload["archive"]
-    year = int(payload["year"])
-    month = int(payload["month"])
-    days = payload["days"]
-    variable = payload["variable"]
+    bucket_id = request_json['bucketId']
+    object_id = request_json['objectId']
 
     # download data
-    logger.info(f'Requesting download for {archive} {year} {month} {variable}')
+    logger.info(f'downloading data: {bucket_id}, {object_id}')
+    slackmessenger.message(f'downloading {bucket_id}/{object_id}')
+    
+    archive = object_id.split('/')[0]
 
     if archive=='era5land':
-        savepath = era5_downloader(year, month, variable, days)
-    elif archive=='tigge':
-        savepath = tigge_downloader(year, month, days)
+        
+        # get the download parameters
+        reply = download_cloud_json(bucket_id, object_id)  
+        
+        # download the file
+        fname_root = os.path.splitext(os.path.split(object_id)[-1])[0]
+        savepath = os.path.join(os.getcwd(),fname_root+'.nc')
+        savepath = era5_downloader(reply, savepath)
+        
+        # move it to the bucket
+        slackmessenger.message(f'moving {fname_root} to bucket')
+        blob_dest = os.path.join(os.environ['CLOUD_STAGING_RAW'],os.path.split(savepath)[-1])
+        upload_blob(savepath,blob_dest)
+        
     else:
         raise NotImplementedError
 
-    # upload data
-    blob_dest = os.path.join(os.environ['CLOUD_STAGING'],os.path.split(savepath)[-1])
 
-    logger.info(f'Uploading to staging {blob_dest}')
-    upload_blob(savepath,blob_dest)
-
-    # remove local data
-    os.remove(savepath)
-
-    logger.info(f'Removed {savepath}')
 
     return f"Staged {blob_dest}", 200

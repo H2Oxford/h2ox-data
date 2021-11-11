@@ -46,3 +46,25 @@ def upload_blob(source_directory: str, target_directory: str):
     blob.upload_from_filename(source_directory)
 
     return target_directory
+
+def download_cloud_json(bucket_name: str, filename: str, **kwargs) -> Dict:
+    """
+    Function to load the json data for the WorldFloods bucket using the filename
+    corresponding to the image file name. The filename corresponds to the full
+    path following the bucket name through intermediate directories to the final
+    json file name.
+    Args:
+      bucket_name (str): the name of the Google Cloud Storage (GCP) bucket.
+      filename (str): the full path following the bucket_name to the json file.
+    Returns:
+      The unpacked json data formatted to a dictionary.
+    """
+    # initialize client
+    client = storage.Client(**kwargs)
+    # get bucket
+    bucket = client.get_bucket(bucket_name)
+    # get blob
+    blob = bucket.blob(filename)
+    # check if it exists
+    # TODO: wrap this within a context
+    return json.loads(blob.download_as_string(client=None))
