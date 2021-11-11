@@ -4,9 +4,11 @@ FROM osgeo/gdal:ubuntu-small-latest
 # Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED True
 
+#ENV MAIN apps/ecmwf_downloader
+ARG MAIN
+
 # Set default env vars to clear CI
 ENV PROVIDER GCP
-ENV MAIN apps/ecmwf_downloader
 
 ENV APP_HOME /app
 
