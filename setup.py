@@ -87,6 +87,7 @@ setup(
         "rasterio~=1.2.10",
         "zarr~=2.10.2",
         "tqdm~=4.62.3",
+        "certifi",
     ],
     extras_require={
         "dash": [

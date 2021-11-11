@@ -2,6 +2,7 @@ from typing import List, Optional
 import os
 import json
 import time
+import certifi
 
 import cdsapi
 
