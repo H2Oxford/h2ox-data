@@ -13,7 +13,7 @@ from flask import Flask
 from flask import request
 from h2ox.data.slackbot import SlackMessenger
 from h2ox.data.downloaders import era5_enqueuer, era5_checker
-from h2ox.provider import upload_blob
+from h2ox.provider import upload_blob, cloud_file_exists
 from loguru import logger
 
 """enqueuer"""
@@ -105,7 +105,9 @@ def queue_ecmwf():
         
         fname_root = '_'.join(['era5land',str(year),f'{month:02d}',variable])
         
-        if not cloud_exists():
+        full_path = os.path.join(os.eviron['CLOUD_STAGING_QUEUE'],f'{fname_root}.token')
+        
+        if not cloud_file_exists(full_path):
             # trigger task for first time
             reply = era5_enqueuer(year, month, variable,days)
             

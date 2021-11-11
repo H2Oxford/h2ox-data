@@ -70,3 +70,26 @@ def download_cloud_json(bucket_name: str, filename: str, **kwargs) -> Dict:
     # check if it exists
     # TODO: wrap this within a context
     return json.loads(blob.download_as_string(client=None))
+
+def cloud_file_exists(full_path: str, **kwargs) -> bool:
+    """
+    Function to check if the file in the bucket exist utilizing Google Cloud Storage
+    (GCP) blobs.
+    Args:
+      bucket_name (str): a string corresponding to the name of the GCP bucket.
+      filename_full_path (str): a string containing the full path from bucket to file.
+    Returns:
+      A boolean value corresponding to the existence of the file in the bucket.
+    """
+    
+    bucket_name = full_path.split('/')[0]
+    remaining_path = '/'.join(full_path.split('/')[1:])
+    
+    # initialize client
+    client = storage.Client(**kwargs)
+    # get bucket
+    bucket = client.get_bucket(bucket_name)
+    # get blob
+    blob = bucket.blob(remaining_path)
+    # check if it exists
+    return blob.exists()
