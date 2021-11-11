@@ -105,7 +105,7 @@ def queue_ecmwf():
         
         fname_root = '_'.join(['era5land',str(year),f'{month:02d}',variable])
         
-        full_path = os.path.join(os.eviron['CLOUD_STAGING_QUEUE'],f'{fname_root}.token')
+        full_path = os.path.join(os.environ['CLOUD_STAGING_QUEUE'],f'{fname_root}.token')
         
         if not cloud_file_exists(full_path):
             # trigger task for first time
