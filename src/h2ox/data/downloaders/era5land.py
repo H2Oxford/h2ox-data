@@ -43,7 +43,7 @@ def era5_enqueuer(
     year = str(year)
     month = int(month)
     
-    client = cdsapi.Client()
+    client = cdsapi.Client(wait_until_complete=False, delete=False, debug=True)
     
     result_object = client.retrieve(
         'reanalysis-era5-land',
@@ -63,11 +63,10 @@ def era5_enqueuer(
                 '18:00', '19:00', '20:00',
                 '21:00', '22:00', '23:00',
             ],
-        },
-        './test.nc'
+        }
     )
     
-    time.sleep(10)
+    time.sleep(20)
     
     return result_object.reply
     
