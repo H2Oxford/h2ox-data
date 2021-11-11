@@ -144,6 +144,7 @@ def queue_ecmwf():
             if 'state' not in reply.keys():
                 
                 logger.info('No state retrieved from CDS')
+                # requeue and fail open
                 
                 return f"No state returned from CDS :(", 400
             

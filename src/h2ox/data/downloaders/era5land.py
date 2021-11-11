@@ -1,6 +1,7 @@
 from typing import List, Optional
 import os
 import json
+import time
 
 import cdsapi
 
@@ -63,6 +64,8 @@ def era5_enqueuer(
             ],
         }
     )
+    
+    time.sleep(10)
     
     return result_object.reply
     
