@@ -3,9 +3,6 @@ import os
 
 import cdsapi
 
-from h2ox.data.slackbot import SlackMessenger
-
-
 VARIABLES = {
     't2m':'2m_temperature',
     'u10':'10m_u_component_of_wind',
@@ -45,8 +42,7 @@ def era5_enqueuer(
     
     client = cdsapi.Client(wait_until_complete=False)
     
-    
-    result_object = c.retrieve(
+    result_object = client.retrieve(
         'reanalysis-era5-land',
         {
             'format': 'netcdf',
@@ -96,7 +92,7 @@ def era5_downloader(
     
     reply = json.loads(refresh.text)
     
-    result_ob = cdsapi.api.Result(c, reply) # building this guy break the current request
+    result_ob = cdsapi.api.Result(client, reply) # building this guy break the current request
     
     result_ob.download(savepath)
     
