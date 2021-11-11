@@ -11,6 +11,7 @@ import traceback
 
 from flask import Flask
 from flask import request
+from h2ox.data.slackbot import SlackMessenger
 from h2ox.data.downloaders import era5_enqueuer, era5_checker
 from h2ox.provider import upload_blob
 from loguru import logger
