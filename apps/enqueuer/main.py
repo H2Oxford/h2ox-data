@@ -134,10 +134,20 @@ def queue_ecmwf():
                 bucket_name=queue_blob_dest.split('/')[0], 
                 filename='/'.join(queue_blob_dest.split('/')[1:]),
             )
+            
+            logger.info(f'pre-check: {json.dumps(reply)}')
 
             reply = era5_checker(reply)
             
-            if reply['state']=='completed':
+            logger.info(f'post-check: {json.dumps(reply)}')
+            
+            if 'state' not in reply.keys():
+                
+                logger.info('No state retrieved from CDS')
+                
+                return f"No state returned from CDS :(", 400
+            
+            elif reply['state']=='completed':
                 # download ready. push ready token and success
                 local_path = os.path.join(os.getcwd(),f'{fname_root}.token')
                 json.dump(reply, open(local_path,'w'))
