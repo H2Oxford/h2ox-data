@@ -13,7 +13,7 @@ from flask import Flask
 from flask import request
 from h2ox.data.slackbot import SlackMessenger
 from h2ox.data.downloaders import era5_enqueuer, era5_checker
-from h2ox.provider import upload_blob, cloud_file_exists
+from h2ox.provider import upload_blob, cloud_file_exists, download_cloud_json
 from loguru import logger
 
 """enqueuer"""
