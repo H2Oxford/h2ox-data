@@ -107,6 +107,8 @@ def download_ecmwf():
         # move it to the bucket
         slackmessenger.message(f'moving {fname_root} to bucket')
         blob_dest = os.path.join(os.environ['CLOUD_STAGING_RAW'],os.path.split(savepath)[-1])
+        logger.info(f'moving {savepath} to {blob_dest} (size: {os.path.getsize(savepath)/1000/1000}mb)')
+        
         upload_blob(savepath,blob_dest)
         
     else:

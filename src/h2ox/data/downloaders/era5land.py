@@ -89,7 +89,7 @@ def era5_downloader(
     savepath: str
 ):
     
-    client = cdsapi.Client(wait_until_complete=False, quiet=True, delete=False)
+    client = cdsapi.Client(wait_until_complete=False, delete=False)
     
     task_url = "%s/tasks/%s" % (client.url, reply['request_id'])
     
