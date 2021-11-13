@@ -75,12 +75,6 @@ def download_ecmwf():
     if not isinstance(request_json, dict):
         json_data = base64.b64decode(request_json).decode("utf-8")
         request_json = json.loads(json_data)
-    
-    if not payload:
-        msg = "no message received"
-        print(f"error: {msg}")
-        return f"Bad Request: {msg}", 400
-
 
     logger.info('request_json: '+json.dumps(request_json))
     

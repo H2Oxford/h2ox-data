@@ -159,7 +159,7 @@ def queue_ecmwf():
                 slackmessenger.message(f'{fname_root} completed!')
                 
                 msg = f"{fname_root} ready!"
-                logger.info(msc)
+                logger.info(msg)
                 return f"{fname_root} ready for download!", 200
                 
             else:
