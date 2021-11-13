@@ -153,7 +153,7 @@ def queue_ecmwf():
                 local_path = os.path.join(os.getcwd(),f'{fname_root}.token')
                 json.dump(reply, open(local_path,'w'))
                 ready_blob_dest = os.path.join(os.environ['CLOUD_STAGING_SCHEDULE'],f'{fname_root}.token')
-                upload_blob(local_path,blob_dest)
+                upload_blob(local_path,ready_blob_dest)
                 
                 # success
                 slackmessenger.message(f'{fname_root} completed!')
