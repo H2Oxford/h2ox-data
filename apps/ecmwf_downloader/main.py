@@ -85,8 +85,8 @@ def download_ecmwf():
     )
     
     # parse request
-    bucket_id = request_json['bucketId']
-    object_id = request_json['objectId']
+    bucket_id = request_json['bucket']
+    object_id = request_json['name']
 
     # download data
     logger.info(f'downloading data: {bucket_id}, {object_id}')
