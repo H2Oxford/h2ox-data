@@ -152,7 +152,7 @@ def queue_ecmwf():
                 # download ready. push ready token and success
                 local_path = os.path.join(os.getcwd(),f'{fname_root}.token')
                 json.dump(reply, open(local_path,'w'))
-                ready_blob_dest = os.path.join(os.environ['CLOUD_STAGING_SHEDULE'],f'{fname_root}.token')
+                ready_blob_dest = os.path.join(os.environ['CLOUD_STAGING_SCHEDULE'],f'{fname_root}.token')
                 upload_blob(local_path,blob_dest)
                 
                 # success

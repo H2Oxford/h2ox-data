@@ -43,7 +43,7 @@ def era5_enqueuer(
     year = str(year)
     month = int(month)
     
-    client = cdsapi.Client(wait_until_complete=False, delete=False, debug=True)
+    client = cdsapi.Client(wait_until_complete=False, delete=False)
     
     result_object = client.retrieve(
         'reanalysis-era5-land',
@@ -89,7 +89,7 @@ def era5_downloader(
     savepath: str
 ):
     
-    client = cdsapi.Client(wait_until_complete=False, quiet=True)
+    client = cdsapi.Client(wait_until_complete=False, quiet=True, delete=False)
     
     task_url = "%s/tasks/%s" % (client.url, reply['request_id'])
     
