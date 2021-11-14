@@ -58,7 +58,7 @@ def download_ecmwf():
     # delete local
     
     """
-    
+    """ if pubsub:
     envelope = request.get_json()
     if not envelope:
         msg = "no Pub/Sub message received"
@@ -78,15 +78,37 @@ def download_ecmwf():
 
     logger.info('request_json: '+json.dumps(request_json))
     
+    # parse request
+    bucket_id = request_json['bucket']
+    object_id = request_json['name']
+    """
+    
+    payload = request.get_json()
+    
+    if not payload:
+        msg = "no message received"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
+
+
+    logger.info('payload: '+json.dumps(payload))
+
+    if not isinstance(payload, dict):
+        msg = "invalid task format"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
+    
+    bucket_id = payload['bucket']
+    object_id = payload['name']
+
+    
     slackmessenger = SlackMessenger(
         token=os.environ.get('SLACKBOT_TOKEN'),
         target = os.environ.get('SLACKBOT_TARGET'),
         name='era5-downloader',
     )
     
-    # parse request
-    bucket_id = request_json['bucket']
-    object_id = request_json['name']
+    
 
     # download data
     logger.info(f'downloading data: {bucket_id}, {object_id}')
