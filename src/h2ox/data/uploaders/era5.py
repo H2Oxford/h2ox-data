@@ -23,7 +23,7 @@ def era5_ingest_local_worker(local_path, z_dst, slices, variable, zero_dt, ii_wo
     
         for ii_s,s in enumerate(slices):
             
-            if ii_s % 100==0:
+            if ii_s % 10==0:
                 logger.info(f'WORKER:{ii_worker}, slice:{ii_s}/{len(slices)}')
 
             lat_slice = s[0]
