@@ -107,8 +107,6 @@ def download_ecmwf():
         target = os.environ.get('SLACKBOT_TARGET'),
         name='era5-downloader',
     )
-    
-    
 
     # download data
     logger.info(f'downloading data: {bucket_id}, {object_id}')
@@ -119,8 +117,7 @@ def download_ecmwf():
     if archive=='era5land':
         
         # get the nc file
-        download_blob_to_filename(bucket_id, object_id)  
-
+        reply = download_cloud_json(bucket_id, object_id) 
         
         # download the file
         fname_root = os.path.splitext(os.path.split(object_id)[-1])[0]
