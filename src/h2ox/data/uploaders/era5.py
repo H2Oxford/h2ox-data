@@ -1,6 +1,8 @@
 import xarray as xr
 from datetime import datetime
 from loguru import logger
+import numpy as np
+
 
 def era5_ingest_local_worker(local_path, z_dst, slices, zero_dt, ii_worker):
     
