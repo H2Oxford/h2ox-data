@@ -144,9 +144,9 @@ def zarr_ingestor():
         era5_ingest_local_worker(
             local_path, 
             z_dst, 
-            slices_chunked[ii], 
+            slices_chunk, 
             ZERO_DT,
-            ii,
+            0,
         )
         
         
