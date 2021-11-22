@@ -104,6 +104,8 @@ def zarr_ingestor():
     
     bucket_id = payload['bucket']
     object_id = payload['name']
+    slice_start_idx = payload['slice_start_idx']
+    slice_end_idx = payload['slice_end_idx']
     
     
     TARGET = os.environ['TARGET']
@@ -135,6 +137,21 @@ def zarr_ingestor():
         
         slices = pickle.load(open(slices_path,'rb'))
         
+        slices_chunk = slices[slice_start_idx:slice_end_idx]
+        
+        z_dst = zarr.open(mapper(prefix+TARGET))
+        
+        era5_ingest_local_worker(
+            local_path, 
+            z_dst, 
+            slices_chunked[ii], 
+            ZERO_DT,
+            ii,
+        )
+        
+        
+        
+        """multiprocessing
         # dispatch the workers in parallel
         chunk_size = len(slices)//N_WORKERS + 1
         slices_chunked = [slices[ii*chunk_size:(ii+1)*chunk_size] for ii in range(N_WORKERS)]
@@ -155,6 +172,7 @@ def zarr_ingestor():
         pool = mp.Pool(N_WORKERS)
 
         results = pool.starmap(era5_ingest_local_worker, args)
+        """
         
         logger.info(f'ingested data: {bucket_id}, {object_id}')
         slackmessenger.message(f'Done ingesting {bucket_id}/{object_id} to {TARGET}')

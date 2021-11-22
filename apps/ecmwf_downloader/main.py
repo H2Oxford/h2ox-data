@@ -137,6 +137,11 @@ def download_ecmwf():
     else:
         raise NotImplementedError
         
+    logger.info('debug size issue:')
+    _name=''
+    for _name, obj in locals().items():
+        logger.info(f'name: {_name}, size:{sys.getsizeof(obj)}')
+        
     
 
 
