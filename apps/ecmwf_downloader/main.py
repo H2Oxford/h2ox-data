@@ -146,6 +146,10 @@ def download_ecmwf():
     gc.collect()
     
     logger.info(f'after garbage sweep: {psutil.virtual_memory().percent}')
+    
+    os.remove(savepath)
+    
+    logger.info(f'after remove file sweep: {psutil.virtual_memory().percent}')
 
 
     return f"Staged {blob_dest}", 200
