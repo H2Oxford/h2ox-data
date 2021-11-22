@@ -89,6 +89,7 @@ setup(
         "tqdm~=4.62.3",
         "xarray~=0.18.2",
         "netCDF4~=1.5.8",
+        "psutil",
         "certifi",
     ],
     extras_require={

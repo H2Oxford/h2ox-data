@@ -8,6 +8,8 @@ import os
 import sys
 import time
 import traceback
+import gc
+import psutil
 
 from flask import Flask
 from flask import request
@@ -134,13 +136,16 @@ def download_ecmwf():
     else:
         raise NotImplementedError
         
-    logger.info('debug size issue:')
-    _name=''
-    for _name, obj in locals().items():
-        logger.info(f'name: {_name}, size:{sys.getsizeof(obj)}')
-        
+    #logger.info('debug size issue:')
+    #_name=''
+    #for _name, obj in locals().items():
+    #    logger.info(f'name: {_name}, size:{sys.getsizeof(obj)}')
     
-
+    logger.info(f'before garbage sweep: {psutil.virtual_memory().percent}')
+    
+    gc.collect()
+    
+    logger.info(f'after garbage sweep: {psutil.virtual_memory().percent}')
 
 
     return f"Staged {blob_dest}", 200
