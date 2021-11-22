@@ -9,7 +9,6 @@ import os
 import sys
 import time
 import traceback
-import multiprocessing as mp
 import zarr
 
 from flask import Flask
@@ -139,8 +138,12 @@ def zarr_ingestor():
         
         slices_chunk = slices[slice_start_idx:slice_end_idx]
         
+        logger.info(f'downloaded data. ingesting {len(slices_chunk)} chunks.')
+        
         z_dst = zarr.open(mapper(prefix+TARGET))
         
+        
+        #era5_ingest_local_worker(local_path, z_dst, slices, variable, zero_dt, ii_worker)
         era5_ingest_local_worker(
             local_path, 
             z_dst, 

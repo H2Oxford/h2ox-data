@@ -2,7 +2,7 @@ import xarray as xr
 from datetime import datetime
 from loguru import logger
 
-def era5_ingest_local_worker(local_path, z_dst, slices, variable, zero_dt, ii_worker):
+def era5_ingest_local_worker(local_path, z_dst, slices, zero_dt, ii_worker):
     
     ds = xr.open_dataset(local_path)
     
