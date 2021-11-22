@@ -146,7 +146,7 @@ def zarr_ingestor():
             (
                 local_path, 
                 z_dst, 
-                slices_rechunked[ii], 
+                slices_chunked[ii], 
                 ZERO_DT,
                 ii
             ) for ii in range(N_WORKERS)
