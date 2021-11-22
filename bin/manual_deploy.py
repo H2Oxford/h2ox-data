@@ -6,12 +6,18 @@ import json
 import os
 import yaml
 
-TASK_CONFIG =yaml.load(open(os.path.join(os.getcwd(),'gcp_task_conf.yaml'),'r'),Loader=yaml.SafeLoader)
+ENQUEUE_CONF =yaml.load(open(os.path.join(os.getcwd(),'gcp_enqueue_conf.yaml'),'r'),Loader=yaml.SafeLoader)
+INGEST_CONF =yaml.load(open(os.path.join(os.getcwd(),'gcp_ingest_conf.yaml'),'r'),Loader=yaml.SafeLoader)
 
-def create_task(cfg, client, payload):
+def create_task(cfg, client, payload, task_name):
+    
+    duration = duration_pb2.Duration()
+
+    duration.FromSeconds(1800)
     
     # Construct the request body.
     task = {
+        "dispatch_deadline": duration,
         "http_request": {  # Specify the type of request.
             "http_method": tasks_v2.HttpMethod.POST,
             "url": cfg['url'],  # The full url path that the task will be sent to.
@@ -21,9 +27,6 @@ def create_task(cfg, client, payload):
         }
         
     }
-    
-
-    task_name = '_'.join([str(vv) for kk,vv in payload.items()])
     
     if isinstance(payload, dict):
         # Convert dict to JSON string
@@ -54,7 +57,7 @@ def create_task(cfg, client, payload):
     
     return task
 
-def create_payload(archive,year,month,days,variable):
+def create_era5_queue_payload(archive,year,month,days,variable):
     
     if days is not None:
         days=[int(dd) for dd in days]
@@ -67,18 +70,14 @@ def create_payload(archive,year,month,days,variable):
         variable=variable,
     )
 
-def deploy(cfg, archive, year, month, days, variable):
+def deploy(cfg, payload, task_name):
     
     # Create a client.
     client = tasks_v2.CloudTasksClient()
     
-    ### create payload
-    payload = create_payload(archive, year, month, days, variable)
-    
     ### create task
-    task = create_task(cfg, client, payload)
+    task = create_task(cfg, client, payload, task_name)
 
-    
     # Construct the fully qualified queue name.
     parent = client.queue_path(
         cfg['project'], 
@@ -96,14 +95,35 @@ def deploy(cfg, archive, year, month, days, variable):
 
 if __name__=="__main__":
     
-    for ii in range(4,6):
+    # queue and download tasks
+    """ enqueue task
+    for ii in range(6,8):
         
-        deploy(
-            cfg=TASK_CONFIG,
-            archive='era5land',
-            year=2006,
-            month=ii,
-            days=None,
+        ### create payload
+        payload = create_era5_queue_payload(
+            archive='era5land', 
+            year=2006, 
+            month=ii, 
+            days=None, 
             variable='t2m',
         )
+        
+        deploy(
+            cfg=ENQUEUE_CONF,
+            payload=payload,
+            task_name = '_'.join([str(vv) for kk,vv in payload.items()])
+        )
+    """
+    
+    #"""ingest task
+    
+    payload = dict(bucket='oxeo-met-staging',name='era5land/raw/2008_01_t2m.nc')
+
+    deploy(
+            cfg=INGEST_CONF,
+            payload=payload,
+            task_name='_'.join([str(vv).replace('/','_').replace('.','_') for kk,vv in payload.items()])+'2'
+        )
+
+    #"""
 
