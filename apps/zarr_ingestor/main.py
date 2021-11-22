@@ -107,7 +107,7 @@ def zarr_ingestor():
     
     
     TARGET = os.environ['TARGET']
-    ZERO_DT = datetime.strptime(os.environ['ZERO_DT'],'%Y-%m-%dT%H:%M:%S')
+    ZERO_DT = datetime.datetime.strptime(os.environ['ZERO_DT'],'%Y-%m-%dT%H:%M:%S')
     N_WORKERS = os.environ['N_WORKERS']
 
     
