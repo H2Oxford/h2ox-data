@@ -13,7 +13,7 @@ from flask import Flask
 from flask import request
 from h2ox.data.slackbot import SlackMessenger
 from h2ox.data.downloaders import era5_downloader
-from h2ox.provider import upload_blob, download_cloud_json, download_blob
+from h2ox.provider import upload_blob, download_cloud_json, download_blob_to_filename
 from loguru import logger
 
 """downloader - gets json from scheduler and downloads"""
@@ -119,7 +119,7 @@ def download_ecmwf():
     if archive=='era5land':
         
         # get the nc file
-        download_blob(bucket_id, object_id)  
+        download_blob_to_filename(bucket_id, object_id)  
 
         
         # download the file
