@@ -136,46 +136,47 @@ def zarr_ingestor():
         
         slices = pickle.load(open(slices_path,'rb'))
         
-        slices_chunk = slices[slice_start_idx:slice_end_idx]
+        slices_subset = slices[slice_start_idx:slice_end_idx]
         
-        logger.info(f'downloaded data. ingesting {len(slices_chunk)} chunks.')
-        
-        z_dst = zarr.open(mapper(prefix+TARGET))
-        
-        
-        #era5_ingest_local_worker(local_path, z_dst, slices, variable, zero_dt, ii_worker)
-        era5_ingest_local_worker(
-            local_path, 
-            z_dst, 
-            slices_chunk, 
-            ZERO_DT,
-            0,
-        )
-        
-        
-        
-        """multiprocessing
-        # dispatch the workers in parallel
-        chunk_size = len(slices)//N_WORKERS + 1
-        slices_chunked = [slices[ii*chunk_size:(ii+1)*chunk_size] for ii in range(N_WORKERS)]
+        logger.info(f'downloaded data. ingesting {len(slices_subset)} chunks.')
         
         z_dst = zarr.open(mapper(prefix+TARGET))
         
-        #local_path, z_dst, slices, zero_dt
-        args = [
-            (
+        if N_WORKERS==1:
+            
+        
+        
+            #era5_ingest_local_worker(local_path, z_dst, slices, variable, zero_dt, ii_worker)
+            era5_ingest_local_worker(
                 local_path, 
                 z_dst, 
-                slices_chunked[ii], 
+                slices_subset, 
                 ZERO_DT,
-                ii
-            ) for ii in range(N_WORKERS)
-        ]
+                0,
+            )
+        else:
         
-        pool = mp.Pool(N_WORKERS)
+            # dispatch the workers in parallel
+            chunk_size = len(slices_subset)//N_WORKERS + 1
+            slices_chunked = [slices_subset[ii*chunk_size:(ii+1)*chunk_size] for ii in range(N_WORKERS)]
 
-        results = pool.starmap(era5_ingest_local_worker, args)
-        """
+            z_dst = zarr.open(mapper(prefix+TARGET))
+
+            #local_path, z_dst, slices, zero_dt
+            args = [
+                (
+                    local_path, 
+                    z_dst, 
+                    slices_chunked[ii], 
+                    ZERO_DT,
+                    ii
+                ) for ii in range(N_WORKERS)
+            ]
+
+            pool = mp.Pool(N_WORKERS)
+
+            results = pool.starmap(era5_ingest_local_worker, args)
+            
         
         logger.info(f'ingested data: {bucket_id}, {object_id}')
         slackmessenger.message(f'Done ingesting {bucket_id}/{object_id} to {TARGET}')
