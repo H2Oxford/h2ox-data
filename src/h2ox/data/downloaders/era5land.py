@@ -101,4 +101,6 @@ def era5_downloader(
     
     result_ob.download(savepath)
     
+    del result_ob
+    
     return savepath

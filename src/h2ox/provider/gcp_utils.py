@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional
 
 import io
 import json
@@ -19,8 +19,28 @@ def download_blob(url: str) -> io.BytesIO:
     
     bucket = storage_client.bucket(bucket_id)
     blob = bucket.blob(file_path)
+    
     f = io.BytesIO(blob.download_as_bytes())
     return f
+    
+def download_blob_to_filename(url: str, local_path: str) -> int:
+    """Download a blob as bytes
+    Args:
+        url (str): the url to download
+    Returns:
+        io.BytesIO: the content as bytes
+    """
+    storage_client = storage.Client()
+    
+    bucket_id = url.split('/')[0]
+    file_path = '/'.join(url.split('/')[1:])
+    
+    bucket = storage_client.bucket(bucket_id)
+    blob = bucket.blob(file_path)
+    
+    blob.download_to_filename(local_path)
+    return 1
+
 
 def upload_blob(source_directory: str, target_directory: str):
     """Function to save file to a bucket.

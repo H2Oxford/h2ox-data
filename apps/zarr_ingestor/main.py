@@ -1,6 +1,7 @@
 
 import base64
 import datetime
+import pickle
 import io
 import json
 import logging
@@ -8,15 +9,18 @@ import os
 import sys
 import time
 import traceback
+import multiprocessing as mp
+import zarr
 
-import cattr
-import gcsfs
-import pystac
 from flask import Flask
 from flask import request
-from google.cloud import storage
+from h2ox.data.slackbot import SlackMessenger
+from h2ox.data.uploaders import era5_ingest_local_worker
+from h2ox.provider import upload_blob, download_cloud_json, download_blob_to_filename
+from h2ox.provider import mapper, prefix
 from loguru import logger
 
+"""downloader - gets json from scheduler and downloads"""
 
 app = Flask(__name__)
 
@@ -40,115 +44,123 @@ def format_stacktrace():
 
 @app.route("/", methods=["POST"])
 def zarr_ingestor():
+    
+    """Receive a request and queue downloading ecmwf data
+    
+    Request params:
+    ---------------
+    
+        archive: Union[]
+        year: int
+        month: 
+        days:
+        variable:
+        
+    
+    # download data
+    # upload to bucket
+    # delete local
+    
+    """
+    """ if pubsub:
+    envelope = request.get_json()
+    if not envelope:
+        msg = "no Pub/Sub message received"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
 
-    try:
-        tic = time.time()
+    if not isinstance(envelope, dict) or "message" not in envelope:
+        msg = "invalid Pub/Sub message format"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
 
-        envelope = request.get_json()
-        if not envelope:
-            msg = "no message received"
-            print(f"error: {msg}")
-            return f"Bad Request: {msg}", 400
+    request_json = envelope["message"]["data"]
 
-        if not isinstance(envelope, dict) or "message" not in envelope:
-            msg = "invalid Pub/Sub message format"
-            print(f"error: {msg}")
-            return f"Bad Request: {msg}", 400
+    if not isinstance(request_json, dict):
+        json_data = base64.b64decode(request_json).decode("utf-8")
+        request_json = json.loads(json_data)
 
-        request_json = envelope["message"]["data"]
+    logger.info('request_json: '+json.dumps(request_json))
+    
+    # parse request
+    bucket_id = request_json['bucket']
+    object_id = request_json['name']
+    """
+    
+    payload = request.get_json()
+    
+    if not payload:
+        msg = "no message received"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
 
-        if not isinstance(request_json, dict):
-            json_data = base64.b64decode(request_json).decode("utf-8")
-            request_json = json.loads(json_data)
-        # common data
-        storage_gs_path = request_json["storage_gs_path"]
-        bands = request_json["bands"]
-        resolution = request_json["resolution"]
-        job_id = request_json["job_id"]
 
-        fs = gcsfs.GCSFileSystem()
+    logger.info('payload: '+json.dumps(payload))
 
-        # ExtractionTask data
-        extraction_task = request_json["extraction_task"]
-        tiles = [cattr.structure(t, Tile) for t in extraction_task["tiles"]]
-        item_collection = pystac.ItemCollection.from_dict(
-            extraction_task["item_collection"],
-        )
-        band = extraction_task["band"]
-        task_id = extraction_task["task_id"]
-        constellation = extraction_task["constellation"]
-        sensing_time = datetime.datetime.fromisoformat(extraction_task["sensing_time"])
-        task = ExtractionTask(
-            task_id,
-            tiles,
-            item_collection,
-            band,
-            constellation,
-            sensing_time,
-        )
+    if not isinstance(payload, dict):
+        msg = "invalid task format"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
+    
+    bucket_id = payload['bucket']
+    object_id = payload['name']
+    
+    
+    TARGET = os.environ['TARGET']
+    ZERO_DT = datetime.strptime(os.environ['ZERO_DT'],'%Y-%m-%dT%H:%M:%S')
+    N_WORKERS = os.environ['N_WORKERS']
 
-        logger.info(f"Ready to extract {len(task.tiles)} tiles.")
+    
+    slackmessenger = SlackMessenger(
+        token=os.environ.get('SLACKBOT_TOKEN'),
+        target = os.environ.get('SLACKBOT_TARGET'),
+        name='era5-downloader',
+    )
+    
+    # download data
+    logger.info(f'downloading data: {bucket_id}, {object_id}')
+    slackmessenger.message(f'Ingesting {bucket_id}/{object_id} to {TARGET} with {N_WORKERS} workers')
+    
+    archive = object_id.split('/')[0]
 
-        # do monitor if possible
-        if "MONITOR_TABLE" in os.environ:
-            monitor = GCPMonitor(
-                table_name=os.environ["MONITOR_TABLE"],
-                storage_path=storage_gs_path,
-                job_id=job_id,
-                task_id=task_id,
-                constellation=constellation,
-            )
-            monitor.post_status(
-                msg_type="STARTED",
-                msg_payload=f"Extracting {len(task.tiles)}",
-            )
-        else:
-            logger.warning(
-                "Environment variable MONITOR_TABLE not set. Unable to push task status to Monitor",
-            )
+    if archive=='era5land':
+        # download the nc archive
+        
+        local_path = os.path.join(os.getcwd(),object_id.split('/')[-1])
+        download_blob_to_filename(f'{bucket_id}/{object_id}', local_path)
+        
+        # download the slices
+        slices_path = os.path.join(os.getcwd(),'slices.pkl')
+        download_blob_to_filename(f'{bucket_id}/{archive}/slices.pkl',slices_path)
+        
+        slices = pickle.load(open(slices_path,'rb'))
+        
+        # dispatch the workers in parallel
+        chunk_size = len(slices)//N_WORKERS + 1
+        slices_chunked = [slices[ii*chunk_size:(ii+1)*chunk_size] for ii in range(N_WORKERS)]
+        
+        z_dst = zarr.open(mapper(prefix+TARGET))
+        
+        #local_path, z_dst, slices, zero_dt
+        args = [
+            (
+                local_path, 
+                z_dst, 
+                slices_rechunked[ii], 
+                ZERO_DT,
+                ii
+            ) for ii in range(N_WORKERS)
+        ]
+        
+        pool = mp.Pool(N_WORKERS)
 
-        patches = task_mosaic_patches(
-            cloud_fs=fs,
-            download_f=download_blob,
-            task=task,
-            method="first",
-            resolution=resolution,
-        )
-
-        archive_resolution = int(
-            min([b["gsd"] for kk, b in BAND_INFO[constellation].items()]),
-        )
-
-        logger.info(f"Ready to store {len(patches)} patches at {storage_gs_path}.")
-        store_patches(
-            fs.get_mapper,
-            storage_gs_path,
-            patches,
-            task,
-            bands,
-            resolution,
-            archive_resolution,
-        )
-
-        toc = time.time()
-
-        if "MONITOR_TABLE" in os.environ:
-            monitor.post_status(
-                msg_type="FINISHED",
-                msg_payload=f"Elapsed time: {toc-tic}",
-            )
-
-        logger.info(
-            f"{len(patches)} patches were succesfully stored in {storage_gs_path}.",
-        )
-
-        return f"Extracted {len(patches)} patches.", 200
-
-    except Exception as e:
-
-        trace = format_stacktrace()
-
-        if "MONITOR_TABLE" in os.environ:
-            monitor.post_status(msg_type="FAILED", msg_payload=trace)
-
-        raise e
+        results = pool.starmap(era5_ingest_local_worker, args)
+        
+        logger.info(f'ingested data: {bucket_id}, {object_id}')
+        slackmessenger.message(f'Done ingesting {bucket_id}/{object_id} to {TARGET}')
+        
+    else:
+        raise NotImplementedError
+        
+    
+    return "Ingestion done!", 200
