@@ -88,6 +88,7 @@ setup(
         "zarr~=2.10.2",
         "tqdm~=4.62.3",
         "xarray~=0.18.2",
+        "netCDF4~=1.5.8",
         "certifi",
     ],
     extras_require={
