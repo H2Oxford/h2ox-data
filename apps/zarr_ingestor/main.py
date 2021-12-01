@@ -87,6 +87,8 @@ def zarr_ingestor():
     object_id = request_json['name']
     """
     
+    tic = time.time()
+    
     payload = request.get_json()
     
     if not payload:
@@ -121,7 +123,7 @@ def zarr_ingestor():
     
     # download data
     logger.info(f'downloading data: {bucket_id}, {object_id}')
-    slackmessenger.message(f'Ingesting {bucket_id}/{object_id} to {TARGET} with {N_WORKERS} workers')
+    slackmessenger.message(f'Ingesting {bucket_id}/{object_id} slice {slice_start_idx}:{slice_end_idx} to {TARGET} with {N_WORKERS} workers')
     
     archive = object_id.split('/')[0]
 
@@ -179,8 +181,10 @@ def zarr_ingestor():
         # remove local object to free memory
         os.remove(local_path)
         
+        toc = time.time()-tic
+        
         logger.info(f'ingested data: {bucket_id}, {object_id}')
-        slackmessenger.message(f'Done ingesting {bucket_id}/{object_id} to {TARGET}')
+        slackmessenger.message(f'Done ingesting {bucket_id}/{object_id} slice {slice_start_idx}:{slice_end_idx} to {TARGET} in {toc}s')
         
     else:
         raise NotImplementedError
