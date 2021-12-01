@@ -144,8 +144,6 @@ def zarr_ingestor():
         z_dst = zarr.open(mapper(prefix+TARGET))
         
         if N_WORKERS==1:
-            
-        
         
             #era5_ingest_local_worker(local_path, z_dst, slices, variable, zero_dt, ii_worker)
             era5_ingest_local_worker(
@@ -178,6 +176,8 @@ def zarr_ingestor():
 
             results = pool.starmap(era5_ingest_local_worker, args)
             
+        # remove local object to free memory
+        os.remove(local_path)
         
         logger.info(f'ingested data: {bucket_id}, {object_id}')
         slackmessenger.message(f'Done ingesting {bucket_id}/{object_id} to {TARGET}')
