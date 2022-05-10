@@ -47,7 +47,7 @@ This app, at `apps/enqueuer/main.py`, enqueues data requests with the [Copernicu
 The Copernicus Data Store serves era5land data using the [CDS API](https://github.com/ecmwf/cdsapi) library. 
 To protect the CDS API and to schedule repeated updates, this app schedules requests to the CDS queue.
 Users of this app will need to request credentialed access to the CDS API. 
-Then, to use this app, the CDS API and 
+Then, to use this app and the CDS API, the user needs specify the URL and API-key in: `$HOME/.cdsapirc` (see [here](https://cds.climate.copernicus.eu/api-how-to).) 
 
     CDSAPI_URL = <url-included-in-cds-credentials>
     CDSAPI_KEY = <key-included-in-cds-credentials>
