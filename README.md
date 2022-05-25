@@ -78,14 +78,14 @@ To run the docker container, the environment variables can be passed as a `.env`
 
 [xarray](https://docs.xarray.dev/en/stable/) can be used with a zarr backend to lazily access very large zarr archives.
 
-<img alt="Zarr Xarray" width="1000px" src="https://github.com/H2Oxford/.github/raw/main/profile/img/zarr_chirps.png"/>
+<img alt="Zarr Xarray" width="600px" src="https://github.com/H2Oxford/.github/raw/main/profile/img/zarr_chirps.png"/>
 
 
 ## Citation
 
-CHIRPS can be cited as:
+ERA5Land can be cited as:
 
-    Funk, C.C., Peterson, P.J., Landsfeld, M.F., Pedreros, D.H., Verdin, J.P., Rowland, J.D., Romero, B.E., Husak, G.J., Michaelsen, J.C., and Verdin, A.P., 2014, A quasi-global precipitation time series for drought monitoring: U.S. Geological Survey Data Series 832, 4 p. http://pubs.usgs.gov/ds/832/
+    Muñoz Sabater, J., (2019): ERA5-Land hourly data from 1981 to present. Copernicus Climate Change Service (C3S) Climate Data Store (CDS). 10.24381/cds.e2161bac
     
 Our Wave2Web submission can be cited as: 
  
