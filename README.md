@@ -78,7 +78,7 @@ To run the docker container, the environment variables can be passed as a `.env`
 
 [xarray](https://docs.xarray.dev/en/stable/) can be used with a zarr backend to lazily access very large zarr archives.
 
-<img alt="Zarr Xarray" width="600px" src="https://github.com/H2Oxford/.github/raw/main/profile/img/zarr_chirps.png"/>
+<img alt="Zarr Xarray" width="600px" src="https://github.com/H2Oxford/.github/raw/main/profile/img/zarr_era5.png"/>
 
 
 ## Citation
